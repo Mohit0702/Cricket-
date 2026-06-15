@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL Cricket Performance Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070d1a;
+    --surface: #0e1825;
+    --card: #111f2e;
+    --border: #1a3045;
+    --gold: #f5a623;
+    --blue: #1e90ff;
+    --green: #00e676;
+    --red: #ff4757;
+    --purple: #b041ff;
+    --text: #e0eaf5;
+    --muted: #607080;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0a1628 0%, #0d2040 50%, #0a1628 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header-left h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(245,166,35,0.4);
+  }
+  .header-left p {
+    font-size: 1rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .header-stats {
+    display: flex;
+    gap: 32px;
+  }
+  .hstat {
+    text-align: center;
+  }
+  .hstat .val {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--blue);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hstat .lbl {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* TABS */
+  .tab-bar {
+    display: flex;
+    gap: 12px;
+    padding: 20px 36px 0;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 26px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    border-color: rgba(30,144,255,0.4);
+  }
+  .tab-btn.active {
+    color: var(--bg);
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(245,166,35,0.25);
+  }
+  .tab-btn .ico { margin-right: 8px; }
+
+  /* LAYOUT */
+  .container { padding: 28px 36px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-title {
+    font-size: 0.72rem;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    margin-top: 32px;
+    padding-left: 12px;
+    border-left: 3px solid var(--gold);
+  }
+  .tab-panel > .section-title:first-child { margin-top: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(30,144,255,0.4); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), transparent);
+  }
+  .card.gold::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .card.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+  .card-title {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  canvas { width: 100% !important; }
+
+  /* LEADERBOARD */
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 20px;
+    text-align: right;
+  }
+  .lb-rank.top { color: var(--gold); font-weight: 700; }
+  .lb-name { flex: 1; font-size: 0.95rem; font-weight: 600; }
+  .lb-sub { font-size: 0.72rem; color: var(--muted); margin-left: 8px; }
+  .lb-bar-wrap { width: 120px; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+  .lb-bar { height: 100%; border-radius: 3px; background: var(--blue); }
+  .lb-bar.gold { background: var(--gold); }
+  .lb-bar.green { background: var(--green); }
+  .lb-bar.purple { background: var(--purple); }
+  .lb-bar.red { background: var(--red); }
+  .lb-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--blue);
+    width: 70px;
+    text-align: right;
+  }
+  .lb-val.gold { color: var(--gold); }
+  .lb-val.green { color: var(--green); }
+  .lb-val.purple { color: var(--purple); }
+  .lb-val.red { color: var(--red); }
+
+  /* TOSS CARD */
+  .toss-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .toss-box {
+    text-align: center;
+    padding: 18px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+  .toss-pct {
+    font-size: 2.4rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .toss-pct.field { color: var(--green); }
+  .toss-pct.bat { color: var(--red); }
+  .toss-box p { font-size: 0.82rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+  .toss-insight {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 12px;
+    background: rgba(245,166,35,0.06);
+    border-radius: 8px;
+    border-left: 3px solid var(--gold);
+  }
+
+  /* VENUE TABLE */
+  .venue-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .venue-name { flex: 1; font-size: 0.88rem; }
+  .venue-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem; color: var(--purple);
+  }
+  .venue-bar-wrap { width: 100px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+  .venue-bar { height: 100%; border-radius: 3px; background: var(--purple); }
+
+  /* PHASE COMPARE */
+  .phase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .phase-box {
+    text-align: center;
+    padding: 18px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+  .phase-val {
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--blue);
+  }
+  .phase-box.death .phase-val { color: var(--red); }
+  .phase-box p { font-size: 0.78rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-21 { grid-template-columns: 1fr; }
+    header { flex-direction: column; gap: 16px; text-align: center; }
+    .header-stats { flex-wrap: wrap; justify-content: center; }
+    .tab-bar { padding: 16px 16px 0; }
+    .tab-btn { flex: 1; text-align: center; padding: 12px 10px; font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>🏏 IPL ANALYTICS</h1>
+    <p>CRICKET PERFORMANCE ANALYSIS · 2008 – 2025</p>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="val">283K</div><div class="lbl">DELIVERIES</div></div>
+    <div class="hstat"><div class="val">1,193</div><div class="lbl">MATCHES</div></div>
+    <div class="hstat"><div class="val">19</div><div class="lbl">SEASONS</div></div>
+    <div class="hstat"><div class="val">65</div><div class="lbl">FEATURES</div></div>
+  </div>
+</header>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="overview"><span class="ico">📈</span>Overview</button>
+  <button class="tab-btn" data-tab="batting"><span class="ico">🏏</span>Batting</button>
+  <button class="tab-btn" data-tab="bowling"><span class="ico">🎯</span>Bowling</button>
+  <button class="tab-btn" data-tab="fielding"><span class="ico">🧤</span>Fielding & Keeping</button>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════ OVERVIEW TAB ══════════════════ -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="section-title">📈 SEASON TRENDS & TEAM PERFORMANCE</div>
+    <div class="grid-21">
+      <div class="card">
+        <div class="card-title">Total Runs Per Season</div>
+        <canvas id="seasonChart" height="160"></canvas>
+      </div>
+      <div class="card gold">
+        <div class="card-title">Most Match Wins — All Time</div>
+        <canvas id="teamWinsChart" height="260"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">🎲 TOSS ANALYSIS & MATCH PHASES</div>
+    <div class="grid-2">
+      <div class="card purple">
+        <div class="card-title">Toss Decision Impact</div>
+        <div class="toss-grid">
+          <div class="toss-box">
+            <div class="toss-pct field">52.6%</div>
+            <p>WIN RATE<br>chose FIELD</p>
+          </div>
+          <div class="toss-box">
+            <div class="toss-pct bat">46.5%</div>
+            <p>WIN RATE<br>chose BAT</p>
+          </div>
+        </div>
+        <div class="toss-insight">
+          ⚡ Teams choosing to field after winning the toss win <strong style="color:var(--green)">~6.1% more often</strong> than those who bat first — chasing has a slight edge across 19 seasons.
+        </div>
+      </div>
+      <div class="card red">
+        <div class="card-title">Run Rate by Match Phase</div>
+        <div class="phase-grid">
+          <div class="phase-box">
+            <div class="phase-val">7.69</div>
+            <p>POWERPLAY<br>(OVERS 1–6)</p>
+          </div>
+          <div class="phase-box death">
+            <div class="phase-val">9.84</div>
+            <p>DEATH OVERS<br>(OVERS 17–20)</p>
+          </div>
+        </div>
+        <div class="toss-insight">
+          🔥 Death-over scoring runs <strong style="color:var(--red)">~28% hotter</strong> than the powerplay — finishers decide matches more than openers in the modern IPL.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">📍 VENUES</div>
+    <div class="card purple">
+      <div class="card-title">Matches Hosted by Venue</div>
+      <div id="venueLB"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ BATTING TAB ══════════════════ -->
+  <div class="tab-panel" id="tab-batting">
+    <div class="section-title">🏅 RUN-SCORING LEADERBOARDS</div>
+    <div class="grid-2">
+      <div class="card green">
+        <div class="card-title">Top 10 Run Scorers</div>
+        <div id="batterLB"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Strike Rate — Top 10 Batters</div>
+        <canvas id="srChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">⚡ BOUNDARY KINGS</div>
+    <div class="grid-2">
+      <div class="card gold">
+        <div class="card-title">Most Sixes</div>
+        <div id="sixesLB"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Most Fours</div>
+        <div id="foursLB"></div>
+      </div>
+    </div>
+
+    <div class="section-title">🏆 STANDOUT INNINGS</div>
+    <div class="grid-2">
+      <div class="card gold">
+        <div class="card-title">Most "Player of the Match" Awards</div>
+        <div id="pomLB"></div>
+      </div>
+      <div class="card green">
+        <div class="card-title">Highest Individual Innings Scores</div>
+        <div id="highScoreLB"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ BOWLING TAB ══════════════════ -->
+  <div class="tab-panel" id="tab-bowling">
+    <div class="section-title">🎯 WICKET-TAKING & ECONOMY</div>
+    <div class="grid-2">
+      <div class="card red">
+        <div class="card-title">Top 10 Wicket Takers</div>
+        <div id="bowlerLB"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Economy Rate — Top Wicket Takers (runs per over)</div>
+        <canvas id="ecoChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">🔥 PHASE-WISE SCORING CONCEDED</div>
+    <div class="card red">
+      <div class="card-title">Run Rate Conceded by Match Phase</div>
+      <div class="phase-grid">
+        <div class="phase-box">
+          <div class="phase-val">7.69</div>
+          <p>POWERPLAY<br>(OVERS 1–6)</p>
+        </div>
+        <div class="phase-box death">
+          <div class="phase-val">9.84</div>
+          <p>DEATH OVERS<br>(OVERS 17–20)</p>
+        </div>
+      </div>
+      <div class="toss-insight">
+        🎯 Bowlers with economy under 7.0 in the death overs (overs 17–20) are the rarest commodity in T20 — most of the top wicket-takers see their economy climb here.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ FIELDING & KEEPING TAB ══════════════════ -->
+  <div class="tab-panel" id="tab-fielding">
+    <div class="section-title">🧤 CATCHES & DISMISSALS</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Most Catches</div>
+        <div id="catchesLB"></div>
+      </div>
+      <div class="card gold">
+        <div class="card-title">Most Stumpings (Wicketkeepers)</div>
+        <div id="stumpingsLB"></div>
+      </div>
+    </div>
+
+    <div class="section-title">🏃 RUN-OUT INVOLVEMENTS</div>
+    <div class="card green">
+      <div class="card-title">Most Run-Out Involvements</div>
+      <div id="runoutsLB"></div>
+    </div>
+
+    <div class="section-title">🧤 WICKETKEEPER IMPACT</div>
+    <div class="card purple">
+      <div class="card-title">Catches + Stumpings Combined (Top Wicketkeepers/Fielders)</div>
+      <div id="keeperLB"></div>
+      <div class="toss-insight">
+        🧤 MS Dhoni leads all dismissal categories — catches, stumpings, and run-out involvements — reflecting 17 seasons as a frontline IPL wicketkeeper.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>BUILT BY MOHIT MAHAJAN · IPL DATASET 2008–2025 · PYTHON · PANDAS · NUMPY · SQL</footer>
+
+<script>
+Chart.defaults.color = '#607080';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+// ── TAB SWITCHING ───────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── DATA (computed via SQL + Pandas from IPL.csv, 283,678 deliveries) ──────
+const seasons = ['2007/08','2009','2009/10','2011','2012','2013','2014','2015','2016','2017','2018','2019','2020/21','2021','2022','2023','2024','2025'];
+const seasonRuns = [17140,15661,18100,20334,21685,21871,18312,17701,18208,18199,19337,18824,18757,17937,23360,24651,24903,25536];
+
+const teams = ['Mumbai Indians','Chennai Super Kings','Kolkata Knight Riders','Rajasthan Royals','Royal Challengers B.','Sunrisers Hyderabad','Kings XI Punjab','Delhi Capitals/DD'];
+const wins = [152,144,135,118,114,95,85,120]; // DC + DD combined
+
+const batters = ['V Kohli','RG Sharma','S Dhawan','DA Warner','SK Raina','MS Dhoni','KL Rahul','AM Rahane','AB de Villiers','CH Gayle'];
+const bRuns =   [8880,   7140,    6736,    6537,    5513,   5409,   5337,    5182,     5148,        4956];
+const bSR =     [133.55, 132.25, 127.00, 139.68, 136.97, 137.46, 136.78, 125.69, 151.41, 148.78];
+
+const bowlers = ['YS Chahal','B Kumar','SP Narine','PP Chawla','JJ Bumrah','R Ashwin','DJ Bravo','A Mishra','RA Jadeja','SL Malinga'];
+const wickets = [220,205,195,189,186,183,183,173,172,170];
+
+const sixBats  = ['CH Gayle','RG Sharma','V Kohli','MS Dhoni','AB de Villiers','DA Warner','SV Samson','AD Russell'];
+const sixCount = [354,308,299,261,250,233,227,222];
+
+const fourBats  = ['V Kohli','S Dhawan','DA Warner','RG Sharma','AM Rahane','SK Raina','G Gambhir','RV Uthappa'];
+const fourCount = [798,763,661,649,523,504,490,480];
+
+const venues   = ['Eden Gardens','Wankhede Stadium','M Chinnaswamy Stadium','Feroz Shah Kotla','Wankhede Stadium (Mumbai)','Rajiv Gandhi Intl, Uppal','MA Chidambaram, Chepauk','Sawai Mansingh Stadium'];
+const vMatches = [77,73,65,60,55,49,48,47];
+
+const ecoPlayers = ['SL Malinga','SP Narine','JJ Bumrah','R Ashwin','A Mishra','B Kumar','RA Jadeja','YS Chahal','PP Chawla','DJ Bravo'];
+const ecoVals   = [6.74, 6.67, 6.98, 6.95, 7.20, 7.42, 7.53, 7.76, 7.83, 8.00];
+
+const pomPlayers = ['AB de Villiers','CH Gayle','RG Sharma','V Kohli','MS Dhoni','DA Warner'];
+const pomCount   = [25, 22, 21, 19, 18, 18];
+
+const highScores = [
+  { batter: 'CH Gayle', runs: 171, note: 'vs PWI, 2013' },
+  { batter: 'BB McCullum', runs: 158, note: 'vs RCB, 2008 (opener)' },
+  { batter: 'Abhishek Sharma', runs: 141, note: 'vs RR, 2025' },
+  { batter: 'Q de Kock', runs: 140, note: '2024' },
+  { batter: 'KL Rahul', runs: 132, note: '2021' }
+];
+
+// FIELDING / KEEPING DATA (from wicket_kind + fielders columns)
+const catchers = ['MS Dhoni','KD Karthik','V Kohli','AB de Villiers','SK Raina','RA Jadeja','RG Sharma','S Dhawan'];
+const catchCount = [158, 145, 120, 120, 106, 104, 101, 100];
+
+const stumpers = ['MS Dhoni','KD Karthik','RV Uthappa','WP Saha','RR Pant','SV Samson','AC Gilchrist','PA Patel'];
+const stumpCount = [47, 37, 32, 26, 24, 17, 16, 16];
+
+const runoutPlayers = ['MS Dhoni','KD Karthik','RV Uthappa','SV Samson','PA Patel','RA Jadeja','NV Ojha','WP Saha'];
+const runoutCount = [53, 46, 45, 27, 26, 25, 25, 20];
+
+const keeperPlayers = ['MS Dhoni','KD Karthik','AB de Villiers','V Kohli','SK Raina','RA Jadeja','RG Sharma','S Dhawan'];
+const keeperCount = [205, 182, 120, 120, 106, 104, 101, 100]; // catches + stumpings
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function buildLB(containerId, names, values, max, colorClass='', suffix='') {
+  const el = document.getElementById(containerId);
+  el.innerHTML = names.map((n,i) => `
+    <div class="lb-row">
+      <span class="lb-rank ${i<3?'top':''}">${i+1}</span>
+      <span class="lb-name">${n}</span>
+      <div class="lb-bar-wrap"><div class="lb-bar ${colorClass}" style="width:${(values[i]/max*100).toFixed(0)}%"></div></div>
+      <span class="lb-val ${colorClass}">${values[i].toLocaleString()}${suffix}</span>
+    </div>`).join('');
+}
+
+// ── SEASON RUNS LINE CHART ────────────────────────────────────────────────
+new Chart(document.getElementById('seasonChart'), {
+  type: 'line',
+  data: {
+    labels: seasons,
+    datasets: [{
+      label: 'Total Runs',
+      data: seasonRuns,
+      borderColor: '#1e90ff',
+      backgroundColor: 'rgba(30,144,255,0.08)',
+      borderWidth: 2.5,
+      pointBackgroundColor: '#1e90ff',
+      pointRadius: 4,
+      tension: 0.35,
+      fill: true
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { font: { size: 10, family: 'JetBrains Mono' }, maxRotation: 45 } },
+      y: { ticks: { font: { size: 10, family: 'JetBrains Mono' } } }
+    }
+  }
+});
+
+// ── TEAM WINS BAR ─────────────────────────────────────────────────────────
+new Chart(document.getElementById('teamWinsChart'), {
+  type: 'bar',
+  data: {
+    labels: teams,
+    datasets: [{
+      data: wins,
+      backgroundColor: [
+        '#1e90ff','#f5a623','#9c59d1','#00e676',
+        '#ff4757','#1e90ff','#f5a623','#00e676'
+      ],
+      borderRadius: 5,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { font: { size: 10, family: 'JetBrains Mono' } } },
+      y: { ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ── STRIKE RATE BAR ───────────────────────────────────────────────────────
+new Chart(document.getElementById('srChart'), {
+  type: 'bar',
+  data: {
+    labels: batters,
+    datasets: [{
+      label: 'Strike Rate',
+      data: bSR,
+      backgroundColor: bSR.map(v => v>145 ? 'rgba(245,166,35,0.8)' : v>135 ? 'rgba(0,230,118,0.7)' : 'rgba(30,144,255,0.7)'),
+      borderRadius: 6
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        min: 120,
+        ticks: { font: { size: 10, family: 'JetBrains Mono' } }
+      },
+      x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+    }
+  }
+});
+
+// ── ECONOMY RATE CHART ────────────────────────────────────────────────────
+new Chart(document.getElementById('ecoChart'), {
+  type: 'bar',
+  data: {
+    labels: ecoPlayers,
+    datasets: [{
+      label: 'Economy',
+      data: ecoVals,
+      backgroundColor: ecoVals.map(v => v<7.0 ? 'rgba(0,230,118,0.75)' : v<7.5 ? 'rgba(30,144,255,0.75)' : 'rgba(255,71,87,0.75)'),
+      borderRadius: 5
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        min: 6.4,
+        ticks: { font: { size: 10, family: 'JetBrains Mono' } }
+      },
+      x: { ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ── LEADERBOARDS ──────────────────────────────────────────────────────────
+buildLB('batterLB',   batters,       bRuns,      8880, 'green',  ' runs');
+buildLB('bowlerLB',   bowlers,       wickets,    220,  'red',    ' wkts');
+buildLB('sixesLB',    sixBats,       sixCount,   354,  'gold',   ' 6s');
+buildLB('foursLB',    fourBats,      fourCount,  798,  '',       ' 4s');
+buildLB('pomLB',      pomPlayers,    pomCount,   25,   'gold',   ' awards');
+buildLB('catchesLB',  catchers,      catchCount, 158,  '',       ' catches');
+buildLB('stumpingsLB',stumpers,      stumpCount, 47,   'gold',   ' stumps');
+buildLB('runoutsLB',  runoutPlayers, runoutCount,53,   'green',  ' run-outs');
+buildLB('keeperLB',   keeperPlayers, keeperCount,205,  'purple', ' dismissals');
+
+// VENUES
+const vEl = document.getElementById('venueLB');
+vEl.innerHTML = venues.map((v,i) => `
+  <div class="venue-row">
+    <span class="lb-rank ${i<3?'top':''}">${i+1}</span>
+    <span class="venue-name">${v}</span>
+    <div class="venue-bar-wrap"><div class="venue-bar" style="width:${(vMatches[i]/77*100).toFixed(0)}%"></div></div>
+    <span class="venue-count">${vMatches[i]}</span>
+  </div>`).join('');
+
+// HIGHEST INDIVIDUAL SCORES
+const hsEl = document.getElementById('highScoreLB');
+hsEl.innerHTML = highScores.map((h,i) => `
+  <div class="lb-row">
+    <span class="lb-rank ${i<3?'top':''}">${i+1}</span>
+    <span class="lb-name">${h.batter}<span class="lb-sub">${h.note}</span></span>
+    <div class="lb-bar-wrap"><div class="lb-bar purple" style="width:${(h.runs/171*100).toFixed(0)}%"></div></div>
+    <span class="lb-val purple">${h.runs}</span>
+  </div>`).join('');
+</script>
+</body>
+</html>
