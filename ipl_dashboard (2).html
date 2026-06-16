@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL Analysis — Mohit Mahajan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:     #1a1008;
+  --paper:   #f5f0e8;
+  --cream:   #ede8dc;
+  --warm:    #e8e0cc;
+  --accent:  #c0392b;
+  --gold:    #b8860b;
+  --teal:    #1a6b5a;
+  --rule:    #2c1f0e;
+  --faded:   #7a6a55;
+  --mono:    'IBM Plex Mono', monospace;
+  --serif:   'Lora', serif;
+  --display: 'Bebas Neue', sans-serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* subtle grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 1000; opacity: 0.6;
+}
+
+/* ── MASTHEAD ── */
+.masthead {
+  border-bottom: 4px double var(--rule);
+  padding: 18px 40px 14px;
+  text-align: center;
+  position: relative;
+  background: var(--cream);
+}
+.masthead::after {
+  content: '';
+  display: block;
+  border-top: 1px solid var(--rule);
+  margin-top: 10px;
+}
+.vol-line {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--faded);
+  letter-spacing: 2px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.masthead h1 {
+  font-family: var(--display);
+  font-size: 5.2rem;
+  letter-spacing: 6px;
+  color: var(--rule);
+  line-height: 1;
+}
+.masthead .sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--faded);
+  margin-top: 4px;
+}
+.byline {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-top: 6px;
+}
+
+/* ── LAYOUT ── */
+.wrapper { max-width: 1300px; margin: 0 auto; padding: 0 32px 60px; }
+
+.stat-strip {
+  display: flex; gap: 0;
+  border-bottom: 2px solid var(--rule);
+  border-top: 2px solid var(--rule);
+  margin: 18px 0;
+}
+.stat-pill {
+  flex: 1; text-align: center; padding: 10px 6px;
+  border-right: 1px solid var(--rule);
+}
+.stat-pill:last-child { border-right: none; }
+.stat-pill .n {
+  font-family: var(--display);
+  font-size: 1.9rem;
+  color: var(--accent);
+  display: block;
+  line-height: 1;
+}
+.stat-pill .l {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--faded);
+  letter-spacing: 1.5px;
+}
+
+.section-rule {
+  font-family: var(--display);
+  font-size: 0.85rem;
+  letter-spacing: 5px;
+  color: var(--faded);
+  border-top: 2px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 5px 0;
+  margin: 28px 0 18px;
+}
+
+/* ── GRID ── */
+.cols-3    { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.cols-2    { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cols-21   { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.cols-12   { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+.span-full { grid-column: 1 / -1; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--cream);
+  border: 1px solid #c8b89a;
+  padding: 18px;
+  position: relative;
+}
+.card-head {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  letter-spacing: 3px;
+  color: var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+}
+.card-head span {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--faded);
+  letter-spacing: 1px;
+  float: right;
+  margin-top: 4px;
+}
+
+/* ── OPINION BOX ── */
+.opinion {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 16px 18px;
+  border-left: 5px solid var(--accent);
+  font-style: italic;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin-top: 14px;
+}
+.opinion strong { color: var(--gold); font-style: normal; }
+
+/* ── LEADERBOARD ── */
+.lb { width: 100%; }
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #d4c4aa;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-num {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--faded);
+  width: 18px; text-align: right; flex-shrink: 0;
+}
+.lb-num.gold { color: var(--gold); font-weight: 700; }
+.lb-name { flex: 1; font-size: 0.9rem; font-weight: 600; font-family: var(--serif); }
+.lb-track { width: 90px; height: 4px; background: #d4c4aa; flex-shrink: 0; }
+.lb-fill { height: 100%; background: var(--accent); }
+.lb-fill.teal { background: var(--teal); }
+.lb-fill.gold { background: var(--gold); }
+.lb-val {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--rule);
+  width: 56px; text-align: right; flex-shrink: 0;
+}
+
+/* ── TOSS ── */
+.toss-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.toss-box {
+  text-align: center; padding: 16px 8px;
+  border: 1px solid #c8b89a;
+}
+.toss-big {
+  font-family: var(--display);
+  font-size: 3rem;
+  line-height: 1;
+  display: block;
+}
+.toss-box p { font-family: var(--mono); font-size: 0.62rem; color: var(--faded); letter-spacing: 1px; margin-top: 4px; }
+
+/* ── INSIGHT PILL ── */
+.insight {
+  background: var(--warm);
+  border: 1px solid #c8b89a;
+  border-left: 3px solid var(--gold);
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--faded);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  border-top: 4px double var(--rule);
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--faded);
+  letter-spacing: 2px;
+  background: var(--cream);
+}
+
+@media (max-width: 900px) {
+  .cols-3, .cols-2, .cols-21, .cols-12 { grid-template-columns: 1fr; }
+  .masthead h1 { font-size: 3rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="vol-line">
+    <span>VOL. I &nbsp;·&nbsp; NO. 1</span>
+    <span>PYTHON · PANDAS · SQL · MATPLOTLIB</span>
+    <span>SEASON 2008 – 2025</span>
+  </div>
+  <h1>IPL GAZETTE</h1>
+  <div class="sub">A data analyst's deep-dive into 17 seasons of Indian Premier League cricket</div>
+  <div class="byline">ANALYSIS BY MOHIT MAHAJAN &nbsp;·&nbsp; github.com/Mohit0702</div>
+</div>
+
+<div class="wrapper">
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-pill"><span class="n">2,83,678</span><span class="l">DELIVERIES</span></div>
+    <div class="stat-pill"><span class="n">1,100+</span><span class="l">MATCHES</span></div>
+    <div class="stat-pill"><span class="n">17</span><span class="l">SEASONS</span></div>
+    <div class="stat-pill"><span class="n">65</span><span class="l">FEATURES</span></div>
+    <div class="stat-pill"><span class="n">167.4</span><span class="l">AVG 1ST INNS SCORE</span></div>
+    <div class="stat-pill"><span class="n">2,447</span><span class="l">LAST BALL SIXES</span></div>
+  </div>
+
+  <!-- ROW 1 -->
+  <div class="section-rule">SEASON TRENDS &amp; TEAM PERFORMANCE</div>
+  <div class="cols-21">
+    <div class="card">
+      <div class="card-head">RUNS SCORED PER SEASON <span>BALL-BY-BALL AGGREGATE</span></div>
+      <canvas id="seasonChart" height="140"></canvas>
+      <div class="insight">📌 The 2016 season was the breakout year for T20 batting — scores jumped and never came back down. 2025 is already on track to be the highest ever.</div>
+    </div>
+    <div class="card">
+      <div class="card-head">ALL-TIME WINS <span>UNIQUE MATCHES</span></div>
+      <canvas id="teamChart" height="280"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="section-rule">PLAYER LEADERBOARDS</div>
+  <div class="cols-3">
+    <div class="card">
+      <div class="card-head">RUN SCORERS <span>MIN 500 BALLS FACED</span></div>
+      <div class="lb" id="batterLB"></div>
+      <div class="opinion">Kohli at #1 is obvious. What surprised me: <strong>AB de Villiers at 151 SR</strong> with 5000+ runs. That's just not human.</div>
+    </div>
+    <div class="card">
+      <div class="card-head">WICKET TAKERS <span>MIN 50 WICKETS</span></div>
+      <div class="lb" id="bowlerLB"></div>
+      <div class="opinion">Narine's economy of <strong>6.67</strong> while taking 195 wickets is the most underrated stat in this entire dataset.</div>
+    </div>
+    <div class="card">
+      <div class="card-head">STRIKE RATES <span>TOP 8 BATTERS</span></div>
+      <canvas id="srChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div class="section-rule">BOUNDARY KINGS</div>
+  <div class="cols-2">
+    <div class="card">
+      <div class="card-head">MOST SIXES 🔥 <span>ALL TIME</span></div>
+      <div class="lb" id="sixesLB"></div>
+      <div class="insight">📌 CH Gayle hit 359 sixes. That's roughly one six every 9 balls he faced across his entire career.</div>
+    </div>
+    <div class="card">
+      <div class="card-head">MOST FOURS <span>ALL TIME</span></div>
+      <div class="lb" id="foursLB"></div>
+      <div class="insight">📌 Kohli leads in fours AND total runs — consistency over power. Dhawan at #2 is arguably the most underrated IPL batter ever.</div>
+    </div>
+  </div>
+
+  <!-- ROW 4 -->
+  <div class="section-rule">TOSS ANALYSIS &amp; VENUES</div>
+  <div class="cols-12">
+    <div class="card">
+      <div class="card-head">TOSS IMPACT <span>WIN % BY DECISION</span></div>
+      <div class="toss-wrap">
+        <div class="toss-box">
+          <span class="toss-big" style="color:var(--teal)">53.7%</span>
+          <p>WIN RATE<br>CHOSE FIELD</p>
+        </div>
+        <div class="toss-box">
+          <span class="toss-big" style="color:var(--accent)">45.2%</span>
+          <p>WIN RATE<br>CHOSE BAT</p>
+        </div>
+      </div>
+      <div class="opinion">This is the finding that actually surprised me. An 8.5% gap is <strong>huge</strong> in cricket. Chasing is almost always the right call in T20.</div>
+    </div>
+    <div class="card">
+      <div class="card-head">TOP VENUES <span>MATCHES HOSTED</span></div>
+      <div class="lb" id="venueLB"></div>
+    </div>
+  </div>
+
+  <!-- ROW 5 -->
+  <div class="section-rule">BOWLING ECONOMY ANALYSIS</div>
+  <div class="card">
+    <div class="card-head">ECONOMY RATES — TOP WICKET TAKERS <span>RUNS PER OVER · COLOUR = TIER</span></div>
+    <canvas id="ecoChart" height="80"></canvas>
+    <div class="insight" style="margin-top:14px">📌 Green = elite (&lt;7.0), Blue = good (7.0–7.5), Red = expensive (&gt;7.5). Malinga and Narine are in a different league — and both built their success on repeatability, not variety.</div>
+  </div>
+
+</div>
+
+<footer>
+  MOHIT MAHAJAN · B.TECH CSE · AMRITSAR GROUP OF COLLEGES · ANALYSIS DONE IN PYTHON / PANDAS / SQLITE · CHARTS: CHART.JS
+</footer>
+
+<script>
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────
+Chart.defaults.color = '#7a6a55';
+Chart.defaults.borderColor = '#d4c4aa';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 10;
+
+// ── DATA ─────────────────────────────────────────────────────────────────
+const seasons     = ['07/08','09','09/10','11','12','13','14','15','16','17','18','19','20/21','21','22','23','24','25'];
+const seasonRuns  = [17140,15661,18100,20334,21685,21871,18312,17701,18208,18199,19337,18824,18757,17937,23360,24651,24903,25536];
+
+const teams       = ['MI','CSK','KKR','RR','RCB','SRH','KXIP','DC/DD'];
+const wins        = [152,144,135,118,114,95,85,120];
+const teamColors  = ['#c0392b','#b8860b','#1a6b5a','#c0392b','#1a6b5a','#b8860b','#c0392b','#1a6b5a'];
+
+const batNames    = ['V Kohli','RG Sharma','S Dhawan','DA Warner','SK Raina','MS Dhoni','KL Rahul','AM Rahane','AB de Villiers','CH Gayle'];
+const batRuns     = [8880,7140,6736,6537,5513,5409,5337,5182,5148,4956];
+const batSR       = [133.55,132.25,127.00,139.68,136.97,137.46,136.78,125.69,151.41,148.78];
+
+const bowlNames   = ['YS Chahal','B Kumar','SP Narine','PP Chawla','JJ Bumrah','DJ Bravo','R Ashwin','A Mishra','RA Jadeja','SL Malinga'];
+const bowlWkts    = [220,205,195,189,186,183,183,173,172,170];
+
+const sixNames    = ['CH Gayle','RG Sharma','V Kohli','MS Dhoni','AB de Villiers','DA Warner','SV Samson','KA Pollard'];
+const sixCount    = [359,311,300,264,253,236,227,224];
+
+const fourNames   = ['V Kohli','S Dhawan','DA Warner','RG Sharma','AM Rahane','SK Raina','G Gambhir','RV Uthappa'];
+const fourCount   = [799,768,663,653,523,506,492,481];
+
+const venueNames  = ['Eden Gardens','Wankhede Stadium','M Chinnaswamy','Feroz Shah Kotla','Wankhede (Mumbai)','Rajiv Gandhi Intl','MA Chidambaram','Sawai Mansingh'];
+const venueCount  = [77,73,65,60,55,49,48,47];
+
+const ecoNames    = ['SL Malinga','SP Narine','JJ Bumrah','B Kumar','A Mishra','R Ashwin','RA Jadeja','YS Chahal','PP Chawla','DJ Bravo'];
+const ecoVals     = [6.74,6.67,6.98,7.42,7.20,6.95,7.53,7.76,7.83,8.00];
+
+// ── HELPER: leaderboard ───────────────────────────────────────────────────
+function lb(id, names, vals, fillClass='', suffix='') {
+  const max = vals[0];
+  document.getElementById(id).innerHTML = names.map((n,i) => `
+    <div class="lb-row">
+      <span class="lb-num ${i<3?'gold':''}">${i+1}</span>
+      <span class="lb-name">${n}</span>
+      <div class="lb-track"><div class="lb-fill ${fillClass}" style="width:${(vals[i]/max*100).toFixed(0)}%"></div></div>
+      <span class="lb-val">${vals[i].toLocaleString()}${suffix}</span>
+    </div>`).join('');
+}
+
+// ── SEASON LINE ───────────────────────────────────────────────────────────
+new Chart(document.getElementById('seasonChart'), {
+  type: 'line',
+  data: {
+    labels: seasons,
+    datasets: [{
+      data: seasonRuns,
+      borderColor: '#c0392b',
+      backgroundColor: 'rgba(192,57,43,0.07)',
+      borderWidth: 2,
+      pointBackgroundColor: '#c0392b',
+      pointRadius: 3.5,
+      tension: 0.3,
+      fill: true
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#e0d4c0' } }
+    }
+  }
+});
+
+// ── TEAM WINS HORIZONTAL BAR ──────────────────────────────────────────────
+new Chart(document.getElementById('teamChart'), {
+  type: 'bar',
+  data: {
+    labels: [...teams].reverse(),
+    datasets: [{
+      data: [...wins].reverse(),
+      backgroundColor: [...teamColors].reverse(),
+      borderRadius: 2, borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#e0d4c0' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ── STRIKE RATE BAR ───────────────────────────────────────────────────────
+new Chart(document.getElementById('srChart'), {
+  type: 'bar',
+  data: {
+    labels: batNames.slice(0,8).map(n => n.split(' ').pop()),
+    datasets: [{
+      data: batSR.slice(0,8),
+      backgroundColor: batSR.slice(0,8).map(v => v>145?'#b8860b': v>135?'#1a6b5a':'#c0392b'),
+      borderRadius: 2
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 120, grid: { color: '#e0d4c0' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── ECONOMY CHART ─────────────────────────────────────────────────────────
+new Chart(document.getElementById('ecoChart'), {
+  type: 'bar',
+  data: {
+    labels: ecoNames,
+    datasets: [{
+      data: ecoVals,
+      backgroundColor: ecoVals.map(v => v<7.0?'#1a6b5a': v<7.5?'#b8860b':'#c0392b'),
+      borderRadius: 2
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 6.4, grid: { color: '#e0d4c0' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── LEADERBOARDS ──────────────────────────────────────────────────────────
+lb('batterLB', batNames, batRuns, '',     ' runs');
+lb('bowlerLB', bowlNames, bowlWkts, 'teal', ' wkts');
+lb('sixesLB',  sixNames, sixCount, 'gold', ' sixes');
+lb('foursLB',  fourNames, fourCount, '',   ' fours');
+lb('venueLB',  venueNames, venueCount, 'teal', ' matches');
+</script>
+</body>
+</html>
